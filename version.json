@@ -1,0 +1,9 @@
+{
+  "name": "veltis-frontend",
+  "version": "0.1.0",
+  "description": "Frontend for Veltis - Biotech IP Tokenization Platform",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Veltiscapital/veltis-frontend.git"
+  }
+}
