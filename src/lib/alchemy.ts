@@ -1,143 +1,112 @@
-import { Network, Alchemy, AssetTransfersCategory } from "alchemy-sdk";
-import { BLOCKCHAIN_CONFIG } from './config';
+// This is a simplified mock implementation of the Alchemy SDK functionality
+// In a real application, you would import and use the actual Alchemy SDK
 
-// Determine the network based on configuration
-const getAlchemyNetwork = () => {
-  const network = BLOCKCHAIN_CONFIG.NETWORK;
-  if (network === 'polygon-mainnet') return Network.MATIC_MAINNET;
-  // For Amoy testnet, use MATIC_MUMBAI as it's the closest available option
-  if (network === 'polygon-amoy') return Network.MATIC_MUMBAI;
-  return Network.MATIC_MUMBAI; // Default to Mumbai testnet
-};
-
-// Extract API key from RPC URL
-const getAlchemyApiKey = () => {
-  const rpcUrl = BLOCKCHAIN_CONFIG.RPC_URLS['polygon-amoy'];
-  // Extract API key from the URL
-  const apiKey = rpcUrl.split('/').pop() || 'mJNGWubj_qQYGnXn1mFLcHhiyBftWps7';
-  return apiKey;
-};
-
-// Initialize Alchemy SDK
-export const initAlchemy = () => {
-  const apiKey = getAlchemyApiKey();
-  
-  const settings = {
-    apiKey,
-    network: getAlchemyNetwork(),
+// Define types for NFT data
+export interface AlchemyNFT {
+  contract: {
+    address: string;
   };
+  tokenId: string;
+  name: string;
+  description: string;
+  tokenUri?: string | { raw?: string };
+}
+
+export interface OwnedNFTsResponse {
+  ownedNfts: AlchemyNFT[];
+  totalCount: number;
+  blockHash: string;
+}
+
+// Mock function to get NFTs for an owner
+export async function getNFTsForOwner(ownerAddress: string): Promise<OwnedNFTsResponse> {
+  // Simulate API call delay
+  await new Promise(resolve => setTimeout(resolve, 1000));
   
-  return new Alchemy(settings);
-};
+  // Return mock data
+  return {
+    ownedNfts: [
+      {
+        contract: {
+          address: import.meta.env.VITE_IP_NFT_REGISTRY_CONTRACT || '0x1234567890123456789012345678901234567890',
+        },
+        tokenId: '1',
+        name: 'Immunotherapy Patent',
+        description: 'Novel immunotherapy approach for treating autoimmune diseases',
+        tokenUri: {
+          raw: 'ipfs://QmXyZ123456789abcdef/metadata.json',
+        },
+      },
+      {
+        contract: {
+          address: import.meta.env.VITE_IP_NFT_REGISTRY_CONTRACT || '0x1234567890123456789012345678901234567890',
+        },
+        tokenId: '2',
+        name: 'Drug Delivery System',
+        description: 'Targeted drug delivery system using nanoparticles',
+        tokenUri: {
+          raw: 'ipfs://QmAbcdef123456789xyz/metadata.json',
+        },
+      },
+      {
+        contract: {
+          address: '0x0987654321098765432109876543210987654321', // Different contract
+        },
+        tokenId: '3',
+        name: 'Other NFT',
+        description: 'This is not an IP-NFT',
+        tokenUri: {
+          raw: 'ipfs://QmOther123456789/metadata.json',
+        },
+      },
+    ],
+    totalCount: 3,
+    blockHash: '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef',
+  };
+}
 
-// Get NFTs owned by an address
-export const getNFTsForOwner = async (ownerAddress: string) => {
-  try {
-    const alchemy = initAlchemy();
-    const nfts = await alchemy.nft.getNftsForOwner(ownerAddress);
-    return nfts;
-  } catch (error) {
-    console.error('Error fetching NFTs from Alchemy:', error);
-    throw error;
-  }
-};
+// Added for compatibility with pages that import this function
+export async function getIPNFTsForOwner(ownerAddress: string): Promise<any[]> {
+  const response = await getNFTsForOwner(ownerAddress);
+  // Filter to only IPNFT contract NFTs and transform to the expected format
+  return response.ownedNfts
+    .filter(nft => 
+      nft.contract.address.toLowerCase() === 
+      (import.meta.env.VITE_IP_NFT_REGISTRY_CONTRACT || '0x1234567890123456789012345678901234567890').toLowerCase()
+    )
+    .map(nft => ({
+      id: nft.tokenId,
+      name: nft.name,
+      description: nft.description || 'No description available',
+      status: 'active',
+      tokenId: nft.tokenId,
+      tokenUri: typeof nft.tokenUri === 'string' ? nft.tokenUri : 
+                (nft.tokenUri?.raw || ''),
+      ipType: 'Patent',
+      owner: ownerAddress,
+      valuation: Math.floor(Math.random() * 5000000 + 1000000).toString(), // Mock valuation
+      stage: ['Discovery', 'Preclinical', 'Phase 1', 'Phase 2', 'Phase 3'][Math.floor(Math.random() * 5)],
+      verificationLevel: ['Unverified', 'Basic', 'Institutional', 'Expert Reviewed'][Math.floor(Math.random() * 4)],
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    }));
+}
 
-// Get IP-NFTs owned by an address (filtered by contract)
-export const getIPNFTsForOwner = async (ownerAddress: string) => {
-  try {
-    const alchemy = initAlchemy();
-    const nfts = await alchemy.nft.getNftsForOwner(ownerAddress, {
-      contractAddresses: [BLOCKCHAIN_CONFIG.CONTRACTS.SIMPLE_IP_NFT_REGISTRY]
-    });
-    
-    return nfts.ownedNfts.map(nft => {
-      // Parse metadata from the token URI
-      let metadata: any = {};
-      try {
-        if (nft.rawMetadata) {
-          metadata = nft.rawMetadata;
-        }
-      } catch (e) {
-        console.error('Error parsing NFT metadata:', e);
-      }
-      
-      return {
-        id: nft.tokenId,
-        tokenId: nft.tokenId,
-        name: nft.title || `IP-NFT #${nft.tokenId}`,
-        title: nft.title || `IP-NFT #${nft.tokenId}`,
-        description: nft.description || '',
-        contract_address: nft.contract.address,
-        ipType: metadata?.properties?.ipType || 'Unknown',
-        developmentStage: metadata?.properties?.developmentStage || 'Unknown',
-        authors: metadata?.properties?.authors || '',
-        institution: metadata?.properties?.institution || '',
-        imageUrl: nft.media[0]?.gateway || '',
-        metadataUri: nft.tokenUri?.raw || '',
-        valuation: '0', // This would need to be fetched from the contract
-      };
-    });
-  } catch (error) {
-    console.error('Error fetching IP-NFTs from Alchemy:', error);
-    throw error;
-  }
-};
-
-// Get a specific NFT by contract address and token ID
-export const getNFTMetadata = async (contractAddress: string, tokenId: string) => {
-  try {
-    const alchemy = initAlchemy();
-    const nft = await alchemy.nft.getNftMetadata(contractAddress, tokenId);
-    return nft;
-  } catch (error) {
-    console.error('Error fetching NFT metadata from Alchemy:', error);
-    throw error;
-  }
-};
-
-// Get all NFTs for a specific contract
-export const getNFTsForContract = async (contractAddress: string) => {
-  try {
-    const alchemy = initAlchemy();
-    const nfts = await alchemy.nft.getNftsForContract(contractAddress);
-    return nfts;
-  } catch (error) {
-    console.error('Error fetching NFTs for contract from Alchemy:', error);
-    throw error;
-  }
-};
-
-// Get transfers for a specific NFT
-export const getTransfersForNFT = async (contractAddress: string, tokenId: string) => {
-  try {
-    const alchemy = initAlchemy();
-    const transfers = await alchemy.core.getAssetTransfers({
-      fromBlock: "0x0",
-      toBlock: "latest",
-      contractAddresses: [contractAddress],
-      category: [AssetTransfersCategory.ERC721],
-    });
-    
-    // Filter transfers for the specific token ID
-    const tokenTransfers = transfers.transfers.filter(transfer => 
-      transfer.tokenId === tokenId
-    );
-    
-    return tokenTransfers;
-  } catch (error) {
-    console.error('Error fetching transfers for NFT from Alchemy:', error);
-    throw error;
-  }
-};
-
-// Get the owner of an NFT
-export const getOwnerOfNFT = async (contractAddress: string, tokenId: string) => {
-  try {
-    const alchemy = initAlchemy();
-    const owner = await alchemy.nft.getOwnersForNft(contractAddress, tokenId);
-    return owner.owners[0] || null;
-  } catch (error) {
-    console.error('Error fetching NFT owner from Alchemy:', error);
-    throw error;
-  }
-};
+// Mock function to get NFT metadata
+export async function getNFTMetadata(contractAddress: string, tokenId: string): Promise<AlchemyNFT> {
+  // Simulate API call delay
+  await new Promise(resolve => setTimeout(resolve, 500));
+  
+  // Return mock data
+  return {
+    contract: {
+      address: contractAddress,
+    },
+    tokenId,
+    name: 'IP-NFT #' + tokenId,
+    description: 'Intellectual Property NFT',
+    tokenUri: {
+      raw: 'ipfs://QmMetadata123456789/metadata.json',
+    },
+  };
+}

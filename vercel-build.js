@@ -26,73 +26,11 @@ window.ENV = {
   VITE_SIMPLE_IP_NFT_REGISTRY_CONTRACT: "${process.env.VITE_SIMPLE_IP_NFT_REGISTRY_CONTRACT || ''}",
   VITE_POLYGON_AMOY_RPC_URL: "${process.env.VITE_POLYGON_AMOY_RPC_URL || ''}",
   VITE_CHAIN_ID: "${process.env.VITE_CHAIN_ID || ''}",
-  VITE_NETWORK_NAME: "${process.env.VITE_NETWORK_NAME || ''}",
-  VITE_API_URL: "${process.env.VITE_API_URL || ''}",
-  VITE_NFT_STORAGE_API_KEY: "${process.env.VITE_NFT_STORAGE_API_KEY || ''}",
-  VITE_FRACTIONALIZATION_FACTORY_CONTRACT: "${process.env.VITE_FRACTIONALIZATION_FACTORY_CONTRACT || ''}"
+  VITE_NETWORK_NAME: "${process.env.VITE_NETWORK_NAME || ''}"
 };`;
 
 fs.writeFileSync('public/env-config.js', envConfigContent);
 console.log('✅ Created env-config.js file with environment variables');
-
-// Create a fallback.html file
-const fallbackHtml = `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Veltis - Loading</title>
-  <style>
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
-      background-color: #f9fafb;
-      color: #111827;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      height: 100vh;
-      margin: 0;
-      padding: 0 20px;
-      text-align: center;
-    }
-    .loader {
-      border: 4px solid #f3f3f3;
-      border-radius: 50%;
-      border-top: 4px solid #3b82f6;
-      width: 40px;
-      height: 40px;
-      animation: spin 1s linear infinite;
-      margin-bottom: 20px;
-    }
-    @keyframes spin {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
-    }
-    h1 {
-      margin-bottom: 10px;
-    }
-    p {
-      color: #6b7280;
-      max-width: 500px;
-    }
-  </style>
-</head>
-<body>
-  <div class="loader"></div>
-  <h1>Loading Veltis Platform</h1>
-  <p>Please wait while we load the application. If this takes too long, please refresh the page.</p>
-  <script>
-    // Redirect to home page after 5 seconds
-    setTimeout(() => {
-      window.location.href = '/';
-    }, 5000);
-  </script>
-</body>
-</html>`;
-
-fs.writeFileSync('public/fallback.html', fallbackHtml);
-console.log('✅ Created fallback.html file');
 
 // Run the build command
 try {
@@ -101,11 +39,9 @@ try {
   console.log('✅ Build completed successfully');
 
   // Copy important files to the dist directory
-  if (!fs.existsSync('dist')) {
-    fs.mkdirSync('dist', { recursive: true });
+  if (fs.existsSync('public/fallback.html')) {
+    fs.copyFileSync('public/fallback.html', 'dist/fallback.html');
   }
-  
-  fs.copyFileSync('public/fallback.html', 'dist/fallback.html');
   fs.copyFileSync('public/_redirects', 'dist/_redirects');
   fs.copyFileSync('public/env-config.js', 'dist/env-config.js');
   console.log('✅ Copied important files to the dist directory');
@@ -114,4 +50,4 @@ try {
 } catch (error) {
   console.error('❌ Build failed:', error);
   process.exit(1);
-}
+} 

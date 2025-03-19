@@ -7,7 +7,8 @@
     "node": ">=16.0.0"
   },
   "scripts": {
-    "dev": "vite",
+    "setup-env": "node setup-local-env.js",
+    "dev": "npm run setup-env && vite",
     "build": "tsc && vite build",
     "build:vercel": "node vercel-build.js",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
@@ -34,8 +35,8 @@
     "@vitejs/plugin-react-swc": "^3.8.0",
     "alchemy-sdk": "^2.11.0",
     "axios": "^1.6.5",
-    "class-variance-authority": "^0.7.0",
-    "clsx": "^2.1.0",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
     "date-fns": "^3.3.0",
     "ethers": "^5.7.2",
     "lovable-tagger": "^1.1.7",
@@ -50,7 +51,7 @@
     "react-router-dom": "^6.21.2",
     "recharts": "^2.15.1",
     "sonner": "^1.3.1",
-    "tailwind-merge": "^2.2.0",
+    "tailwind-merge": "^2.6.0",
     "tailwindcss-animate": "^1.0.7",
     "web3modal": "^1.9.12"
   },
@@ -62,6 +63,7 @@
     "@typescript-eslint/parser": "^6.14.0",
     "@vitejs/plugin-react": "^4.2.1",
     "autoprefixer": "^10.4.16",
+    "dotenv": "^16.4.7",
     "eslint": "^8.55.0",
     "eslint-plugin-react-hooks": "^4.6.0",
     "eslint-plugin-react-refresh": "^0.4.5",

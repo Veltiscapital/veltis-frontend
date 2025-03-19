@@ -1,10 +1,17 @@
-import { useRoutes } from 'react-router-dom';
+import React from 'react';
+import { createBrowserRouter, RouterProvider } from 'react-router-dom';
+import { AuthProvider } from '@/contexts/AuthContext';
 import routes from './routes';
+import './App.css';
 
 function App() {
-  const content = useRoutes(routes);
-  
-  return content;
+  const router = createBrowserRouter(routes);
+
+  return (
+    <AuthProvider>
+      <RouterProvider router={router} />
+    </AuthProvider>
+  );
 }
 
 export default App;

@@ -1,5 +1,7 @@
+import React from 'react';
 import { Navigate, RouteObject } from 'react-router-dom';
 import { useAuth } from './contexts/AuthContext';
+import { createBrowserRouter } from 'react-router-dom';
 
 // Layouts
 import MainLayout from './layouts/MainLayout';
@@ -19,6 +21,9 @@ import Analytics from './pages/Analytics';
 import SignIn from './pages/SignIn';
 import SignUp from './pages/SignUp';
 import NotFound from './pages/NotFound';
+import IPNFTs from './pages/IPNFTs';
+import Consulting from './pages/Consulting';
+import OneStepFractionalize from './pages/OneStepFractionalize';
 
 // Protected route component
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
@@ -55,13 +60,16 @@ const routes: RouteObject[] = [
           { index: true, element: <Dashboard /> },
           { path: 'marketplace', element: <Marketplace /> },
           { path: 'my-ipnfts', element: <MyIPNFTs /> },
-          { path: 'ipnft/:id', element: <IPNFTDetail /> },
+          { path: 'ipnfts', element: <IPNFTs /> },
+          { path: 'ipnfts/:id', element: <IPNFTDetail /> },
           { path: 'mint', element: <MintIPNFT /> },
           { path: 'fractionalize', element: <Fractionalize /> },
           { path: 'fractionalize/:id', element: <Fractionalize /> },
+          { path: 'one-step-fractionalize', element: <OneStepFractionalize /> },
           { path: 'fractions/:address', element: <FractionDetail /> },
           { path: 'vault', element: <Vault /> },
           { path: 'analytics', element: <Analytics /> },
+          { path: 'consulting', element: <Consulting /> },
         ],
       },
       { path: '*', element: <NotFound /> },
@@ -69,4 +77,4 @@ const routes: RouteObject[] = [
   },
 ];
 
-export default routes; 
+export default routes;

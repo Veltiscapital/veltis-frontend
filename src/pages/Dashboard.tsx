@@ -1,279 +1,184 @@
-import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
-import { useIPNFTs } from "@/hooks/use-api";
-import { useAuth } from "@/contexts/AuthContext";
-import * as blockchain from "@/lib/blockchain";
-import * as alchemy from "@/lib/alchemy";
-import { BLOCKCHAIN_CONFIG } from "@/lib/config";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { IPCardGrid } from "@/components/ui/ip-card-grid";
-import { IPCardSkeletonGrid } from "@/components/ui/ip-card-skeleton";
-import { 
-  ArrowRight, 
-  Microscope, 
-  TrendingUp, 
-  Shield, 
-  Clock, 
-  Loader2, 
-  AlertTriangle, 
-  Plus,
-  BarChart3,
-  Layers,
-  History,
-  FileText,
-  Lock
-} from "lucide-react";
+import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
+import { Button } from '@/components/ui/button';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { IPCardGrid } from '@/components/ui/ip-card-grid';
+import { IPCardSkeletonGrid } from '@/components/ui/ip-card-skeleton';
+import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/card';
+import { useAuth } from '@/contexts/AuthContext';
+import { useIPNFTs } from '@/hooks/use-api';
+import { getOwnedIPNFTs, formatEth } from '@/lib/blockchain';
+import { APP_CONFIG, FEATURES } from '@/lib/config';
 
-interface IPNFT {
-  id: string;
-  name: string;
-  description: string;
-  status: string;
-  valuation: string;
-  expiry: string;
-  protection: string;
-  stage: string;
-  owner: string;
-  tokenId: string;
-  createdAt: string;
-  updatedAt: string;
-  verificationLevel?: 'Basic' | 'Institutional' | 'Expert Reviewed' | 'Unverified';
-  ipType: string;
-  developmentStage: string;
-}
+const Dashboard: React.FC = () => {
+  const { user, walletAddress, isAuthenticated } = useAuth();
+  const { data: ipnfts, isLoading: isLoadingIPNFTs } = useIPNFTs<any[]>();
+  const [stats, setStats] = useState({
+    ownedIPNFTs: 0,
+    totalValueLocked: '0',
+    fractionalized: 0,
+  });
+  const [isLoadingStats, setIsLoadingStats] = useState(true);
 
-interface BlockchainNFT {
-  id: string;
-  name: string;
-  description: string;
-  ipType: string;
-  owner: string;
-  valuation: string;
-  uri: string;
-  createdAt: string;
-}
-
-const Dashboard = () => {
-  const { user, isAuthenticated, walletAddress, connectWallet } = useAuth();
-  const { data: ipNfts, isLoading: isLoadingApi, error: apiError } = useIPNFTs<IPNFT[]>();
-  
-  const [blockchainNfts, setBlockchainNfts] = useState<BlockchainNFT[]>([]);
-  const [isLoadingBlockchain, setIsLoadingBlockchain] = useState<boolean>(false);
-  const [blockchainError, setBlockchainError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState("all");
-  
-  const isLoading = isLoadingApi || isLoadingBlockchain;
-  const error = apiError || blockchainError;
-  
   useEffect(() => {
-    const fetchBlockchainNFTs = async () => {
-      if (!isAuthenticated || !walletAddress) return;
-      
+    const fetchStats = async () => {
+      setIsLoadingStats(true);
       try {
-        setIsLoadingBlockchain(true);
-        setBlockchainError(null);
-        
-        // Try to get NFTs using Alchemy SDK first
-        try {
-          // Get the contract address from config
-          const contractAddress = BLOCKCHAIN_CONFIG.CONTRACTS.IP_NFT_REGISTRY;
+        if (isAuthenticated && walletAddress) {
+          // For a real implementation, these would be API calls
+          // For demo purposes, we'll use mock data
+          const ownedNFTs = await getOwnedIPNFTs();
           
-          // Get NFTs from Alchemy
-          const alchemyNfts = await alchemy.getNFTsForOwner(walletAddress);
-          console.log('Alchemy NFTs:', alchemyNfts);
-          
-          // Filter NFTs to only include those from our contract
-          const ipNfts = alchemyNfts.ownedNfts.filter(nft => 
-            nft.contract.address.toLowerCase() === contractAddress.toLowerCase()
-          );
-          
-          if (ipNfts.length > 0) {
-            // Transform Alchemy NFTs to our format
-            const transformedNfts = ipNfts.map(nft => {
-              let tokenUriString = '';
-              if (nft.tokenUri) {
-                if (typeof nft.tokenUri === 'string') {
-                  tokenUriString = nft.tokenUri;
-                } else if (typeof nft.tokenUri === 'object') {
-                  // Use type assertion to handle the raw property
-                  const tokenUriObj = nft.tokenUri as { raw?: string };
-                  if (tokenUriObj.raw) {
-                    tokenUriString = tokenUriObj.raw;
-                  }
-                }
-              }
-              
-              return {
-                id: nft.tokenId,
-                name: nft.name || 'Untitled IP-NFT',
-                description: nft.description || 'No description available',
-                ipType: 'Patent', // Default type
-                owner: walletAddress,
-                valuation: '1.0', // Default valuation
-                uri: tokenUriString,
-                createdAt: new Date().toISOString(),
-              };
-            });
-            
-            setBlockchainNfts(transformedNfts);
-            return;
-          }
-        } catch (alchemyError) {
-          console.error('Alchemy error:', alchemyError);
-          // Continue to fallback method
+          setStats({
+            ownedIPNFTs: ownedNFTs.length,
+            totalValueLocked: '5700000', // Mock data
+            fractionalized: 2, // Mock data
+          });
         }
-        
-        // Fallback: Get NFTs using our blockchain utility
-        const nfts = await blockchain.getOwnedIPNFTs();
-        setBlockchainNfts(nfts);
       } catch (error) {
-        console.error('Error fetching blockchain NFTs:', error);
-        setBlockchainError('Failed to fetch your IP-NFTs from the blockchain.');
+        console.error('Error fetching stats:', error);
       } finally {
-        setIsLoadingBlockchain(false);
+        setIsLoadingStats(false);
       }
     };
-    
-    fetchBlockchainNFTs();
-  }, [isAuthenticated, walletAddress]);
-  
-  // Combine API and blockchain NFTs
-  const allNfts = [
-    ...(ipNfts || []).map(nft => ({
-      ...nft,
-      source: 'api',
-      ipType: nft.ipType || 'Patent',
-      developmentStage: nft.stage || 'Discovery',
-      verificationLevel: nft.verificationLevel || 'Unverified'
-    })),
-    ...(blockchainNfts || []).map(nft => ({
-      id: nft.id,
-      name: nft.name,
-      description: nft.description,
-      status: 'active',
-      valuation: nft.valuation,
-      expiry: '',
-      protection: '',
-      stage: 'Discovery',
-      owner: nft.owner,
-      tokenId: nft.id,
-      createdAt: nft.createdAt,
-      updatedAt: nft.createdAt,
-      source: 'blockchain',
-      ipType: nft.ipType,
-      developmentStage: 'Discovery',
-      verificationLevel: 'Unverified' as const
-    }))
-  ];
-  
-  // Filter NFTs based on active tab
-  const filteredNfts = allNfts.filter(nft => {
-    if (activeTab === 'all') return true;
-    if (activeTab === 'verified') return nft.verificationLevel !== 'Unverified';
-    if (activeTab === 'unverified') return nft.verificationLevel === 'Unverified';
-    return true;
-  });
 
-  function renderContent() {
-    if (!isAuthenticated) {
-      return (
-        <Alert className="mb-6">
-          <AlertTriangle className="h-4 w-4" />
-          <AlertTitle>Authentication Required</AlertTitle>
-          <AlertDescription>
-            Please sign in and connect your wallet to view your dashboard.
-            <Button 
-              variant="outline" 
-              size="sm" 
-              className="ml-2" 
-              onClick={() => connectWallet()}
-            >
-              Connect Wallet
-            </Button>
-          </AlertDescription>
-        </Alert>
-      );
-    }
-    
-    if (isLoading) {
-      return <IPCardSkeletonGrid count={6} />;
-    }
-    
-    if (error) {
-      return (
-        <Alert variant="destructive" className="mb-6">
-          <AlertTriangle className="h-4 w-4" />
-          <AlertTitle>Error</AlertTitle>
-          <AlertDescription>
-            {typeof error === 'string' ? error : 'Failed to load IP-NFTs. Please try again.'}
-          </AlertDescription>
-        </Alert>
-      );
-    }
-    
-    if (filteredNfts.length === 0) {
-      return (
-        <div className="text-center py-12 border rounded-lg">
-          <div className="mx-auto w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-4">
-            <FileText className="h-6 w-6 text-primary" />
-          </div>
-          <h3 className="text-lg font-medium mb-2">No IP-NFTs Found</h3>
-          <p className="text-muted-foreground mb-6">
-            You don't have any IP-NFTs yet. Start by minting your first intellectual property NFT.
-          </p>
-          <Button asChild>
-            <Link to="/dashboard/mint">
-              <Plus className="mr-2 h-4 w-4" />
-              Mint New IP-NFT
-            </Link>
-          </Button>
-        </div>
-      );
-    }
-    
-    return <IPCardGrid ipnfts={filteredNfts} />;
-  }
+    fetchStats();
+  }, [isAuthenticated, walletAddress]);
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
-          <p className="text-muted-foreground">
-            Manage your intellectual property NFTs
-          </p>
-        </div>
-        <div className="flex gap-2">
+    <div className="space-y-8">
+      <div className="flex justify-between items-center">
+        <h1 className="text-3xl font-bold">Dashboard</h1>
+        <div className="flex gap-4">
           <Button asChild>
-            <Link to="/dashboard/mint">
-              <Plus className="mr-2 h-4 w-4" />
-              Mint New IP-NFT
-            </Link>
+            <Link to="/dashboard/mint">Mint IP-NFT</Link>
+          </Button>
+          <Button variant="outline" asChild>
+            <Link to="/dashboard/fractionalize">Fractionalize</Link>
           </Button>
         </div>
       </div>
-      
-      <Tabs defaultValue="all" value={activeTab} onValueChange={setActiveTab}>
-        <TabsList>
-          <TabsTrigger value="all">All IP-NFTs</TabsTrigger>
-          <TabsTrigger value="verified">Verified</TabsTrigger>
-          <TabsTrigger value="unverified">Unverified</TabsTrigger>
-        </TabsList>
+
+      {!walletAddress && (
+        <Alert variant="destructive" className="mb-6">
+          <AlertTitle>No wallet connected</AlertTitle>
+          <AlertDescription>
+            Connect your wallet to access all features.
+          </AlertDescription>
+        </Alert>
+      )}
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-lg">IP-NFTs Owned</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-3xl font-bold">
+              {isLoadingStats ? '...' : stats.ownedIPNFTs}
+            </p>
+          </CardContent>
+          <CardFooter>
+            <Button variant="ghost" size="sm" asChild>
+              <Link to="/dashboard/my-ipnfts">View all</Link>
+            </Button>
+          </CardFooter>
+        </Card>
         
-        <TabsContent value="all" className="mt-6">
-          {renderContent()}
-        </TabsContent>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-lg">Total Value Locked</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-3xl font-bold">
+              {isLoadingStats ? '...' : `$${parseInt(stats.totalValueLocked).toLocaleString()}`}
+            </p>
+          </CardContent>
+          <CardFooter>
+            <Button variant="ghost" size="sm" asChild>
+              <Link to="/dashboard/analytics">View analytics</Link>
+            </Button>
+          </CardFooter>
+        </Card>
         
-        <TabsContent value="verified" className="mt-6">
-          {renderContent()}
-        </TabsContent>
-        
-        <TabsContent value="unverified" className="mt-6">
-          {renderContent()}
-        </TabsContent>
-      </Tabs>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-lg">Fractionalized IP-NFTs</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-3xl font-bold">
+              {isLoadingStats ? '...' : stats.fractionalized}
+            </p>
+          </CardContent>
+          <CardFooter>
+            <Button variant="ghost" size="sm" asChild>
+              <Link to="/dashboard/fractionalize">Fractionalize</Link>
+            </Button>
+          </CardFooter>
+        </Card>
+      </div>
+
+      <div>
+        <h2 className="text-2xl font-bold mb-4">Your IP-NFTs</h2>
+        {isLoadingIPNFTs ? (
+          <IPCardSkeletonGrid count={3} />
+        ) : ipnfts && ipnfts.length > 0 ? (
+          <IPCardGrid ipnfts={ipnfts.slice(0, 3)} />
+        ) : (
+          <Card className="p-6 text-center">
+            <p className="text-muted-foreground mb-4">You don't have any IP-NFTs yet.</p>
+            <Button asChild>
+              <Link to="/dashboard/mint">Mint your first IP-NFT</Link>
+            </Button>
+          </Card>
+        )}
+      </div>
+
+      <div className="pt-6">
+        <Tabs defaultValue="trending">
+          <TabsList>
+            <TabsTrigger value="trending">Trending IP-NFTs</TabsTrigger>
+            <TabsTrigger value="recent">Recently Added</TabsTrigger>
+          </TabsList>
+          <TabsContent value="trending" className="pt-4">
+            {isLoadingIPNFTs ? (
+              <IPCardSkeletonGrid count={3} />
+            ) : (
+              <IPCardGrid ipnfts={ipnfts?.slice(0, 3) || []} />
+            )}
+          </TabsContent>
+          <TabsContent value="recent" className="pt-4">
+            {isLoadingIPNFTs ? (
+              <IPCardSkeletonGrid count={3} />
+            ) : (
+              <IPCardGrid ipnfts={ipnfts?.slice(0, 3).reverse() || []} />
+            )}
+          </TabsContent>
+        </Tabs>
+      </div>
+
+      {FEATURES.ENABLE_CONSULTING && (
+        <div className="pt-6">
+          <Card className="bg-primary/5">
+            <CardHeader>
+              <CardTitle>Need help with your IP tokenization strategy?</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-muted-foreground">
+                Our team of experts can help you navigate the complex process of
+                tokenizing your intellectual property and creating an effective
+                strategy for maximizing its value.
+              </p>
+            </CardContent>
+            <CardFooter>
+              <Button asChild>
+                <Link to="/dashboard/consulting">Book a Consultation</Link>
+              </Button>
+            </CardFooter>
+          </Card>
+        </div>
+      )}
     </div>
   );
 };

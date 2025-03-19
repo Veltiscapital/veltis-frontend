@@ -1,189 +1,158 @@
-import { useQuery, useMutation, UseQueryOptions, UseMutationOptions, QueryKey } from '@tanstack/react-query';
-import { AxiosError, AxiosResponse } from 'axios';
-import { api } from '@/lib/api';
-import { toast } from 'sonner';
+import { useState, useEffect } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
 
-// Type for API response
+// Define common types
+export interface User {
+  id: string;
+  name: string;
+  email: string;
+  walletAddress?: string;
+}
+
 export interface ApiResponse<T> {
   success: boolean;
   data: T;
   message?: string;
 }
 
-// Custom hook for GET requests
-export function useApiQuery<T>(
-  queryKey: string[],
-  apiFunction: () => Promise<AxiosResponse<ApiResponse<T>>>,
-  options?: Omit<UseQueryOptions<AxiosResponse<ApiResponse<T>>, AxiosError, T, QueryKey>, 'queryKey' | 'queryFn' | 'select'>
-) {
-  return useQuery<AxiosResponse<ApiResponse<T>>, AxiosError, T, QueryKey>({
-    queryKey,
-    queryFn: apiFunction,
-    select: (response) => response.data.data,
-    ...options,
-  });
-}
+// Custom hook for API calls
+export function useApi<T>(endpoint: string, options?: RequestInit) {
+  const [data, setData] = useState<T | null>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+  const { isAuthenticated } = useAuth();
 
-// Custom hook for POST/PUT/DELETE requests
-export function useApiMutation<T, V>(
-  mutationFn: (variables: V) => Promise<AxiosResponse<ApiResponse<T>>> | { request: Promise<AxiosResponse<ApiResponse<T>>> },
-  options?: UseMutationOptions<AxiosResponse<ApiResponse<T>>, AxiosError, V, unknown>
-) {
-  return useMutation<AxiosResponse<ApiResponse<T>>, AxiosError, V>({
-    mutationFn: async (variables) => {
-      // Handle both regular promise returns and the complex return with request property
-      const result = mutationFn(variables);
-      if ('request' in result) {
-        return result.request;
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setIsLoading(true);
+        setError(null);
+
+        // For demo purposes, we'll simulate API calls with mock data
+        await new Promise(resolve => setTimeout(resolve, 1000));
+
+        // Generate mock data based on the endpoint
+        let mockData: any;
+
+        if (endpoint === '/api/user') {
+          mockData = {
+            id: '1',
+            name: 'Demo User',
+            email: 'demo@example.com',
+            walletAddress: '0x1234567890123456789012345678901234567890'
+          };
+        } else {
+          // Default mock data
+          mockData = { message: 'Mock API response' };
+        }
+
+        setData(mockData as T);
+      } catch (err) {
+        console.error('API error:', err);
+        setError(err instanceof Error ? err.message : 'An error occurred');
+      } finally {
+        setIsLoading(false);
       }
-      return result;
-    },
-    onSuccess: (response, variables, context) => {
-      if (options?.onSuccess) {
-        options.onSuccess(response, variables, context);
+    };
+
+    if (isAuthenticated) {
+      fetchData();
+    } else {
+      setData(null);
+      setIsLoading(false);
+    }
+  }, [endpoint, isAuthenticated]);
+
+  return { data, isLoading, error };
+}
+
+// Specialized hook for IP-NFTs
+export function useIPNFTs<T>() {
+  const [data, setData] = useState<T | null>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+  const { isAuthenticated, walletAddress } = useAuth();
+
+  useEffect(() => {
+    const fetchIPNFTs = async () => {
+      try {
+        setIsLoading(true);
+        setError(null);
+
+        // Simulate API call delay
+        await new Promise(resolve => setTimeout(resolve, 1000));
+
+        // Generate mock IP-NFTs data
+        const mockIPNFTs = [
+          {
+            id: '1',
+            name: 'Cancer Treatment Patent',
+            description: 'Novel approach to targeted cancer therapy using modified T-cells',
+            status: 'active',
+            valuation: '2500000',
+            expiry: '2040-05-15',
+            protection: 'Patent',
+            stage: 'Clinical Trials',
+            owner: walletAddress || '0x1234567890123456789012345678901234567890',
+            tokenId: '1',
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+            verificationLevel: 'Expert Reviewed',
+            ipType: 'Patent',
+            developmentStage: 'Clinical Trials'
+          },
+          {
+            id: '2',
+            name: 'Alzheimer\'s Diagnostic Tool',
+            description: 'Early-stage diagnostic tool for Alzheimer\'s disease using blood biomarkers',
+            status: 'active',
+            valuation: '1800000',
+            expiry: '2042-08-22',
+            protection: 'Patent',
+            stage: 'Discovery',
+            owner: walletAddress || '0x1234567890123456789012345678901234567890',
+            tokenId: '2',
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+            verificationLevel: 'Institutional',
+            ipType: 'Patent',
+            developmentStage: 'Discovery'
+          },
+          {
+            id: '3',
+            name: 'Diabetes Management Platform',
+            description: 'AI-powered platform for personalized diabetes management and treatment optimization',
+            status: 'active',
+            valuation: '3200000',
+            expiry: '2039-11-30',
+            protection: 'Patent',
+            stage: 'Development',
+            owner: walletAddress || '0x1234567890123456789012345678901234567890',
+            tokenId: '3',
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+            verificationLevel: 'Basic',
+            ipType: 'Software',
+            developmentStage: 'Development'
+          }
+        ];
+
+        setData(mockIPNFTs as unknown as T);
+      } catch (err) {
+        console.error('Error fetching IP-NFTs:', err);
+        setError(err instanceof Error ? err.message : 'Failed to fetch IP-NFTs');
+      } finally {
+        setIsLoading(false);
       }
-      
-      // Show success toast if there's a message
-      if (response.data.message) {
-        toast.success(response.data.message);
-      }
-    },
-    onError: (error, variables, context) => {
-      if (options?.onError) {
-        options.onError(error, variables, context);
-      }
-      
-      // Show error toast
-      const errorMessage = (error.response?.data as any)?.message || 
-        (error.response?.data as any)?.error ||
-        (typeof error.message === 'string' ? error.message : 'An error occurred');
-      toast.error(errorMessage);
-    },
-    ...options,
-  });
-}
+    };
 
-// Pre-configured hooks for common API operations
+    if (isAuthenticated) {
+      fetchIPNFTs();
+    } else {
+      setData(null);
+      setIsLoading(false);
+    }
+  }, [isAuthenticated, walletAddress]);
 
-// Auth hooks
-export interface User {
-  id: string;
-  wallet_address: string;
-  smart_account_address?: string;
-  email?: string;
-  name?: string;
-  institution?: string;
-  role?: string;
-  kyc_status?: string;
-  terms_accepted?: boolean;
-  created_at?: string;
-  updated_at?: string;
-}
-
-export function useUser<T = User>() {
-  return useApiQuery<T>(['user'], api.auth.getUser, {
-    retry: false,
-    enabled: !!localStorage.getItem('auth_token'),
-  });
-}
-
-// IP-NFT hooks
-export function useIPNFTs<T = unknown>() {
-  return useApiQuery<T>(['ipnfts'], api.ipnft.getAll);
-}
-
-export function useIPNFT<T = unknown>(id: string) {
-  return useApiQuery<T>(['ipnft', id], () => api.ipnft.getById(id), {
-    enabled: !!id,
-  });
-}
-
-export function useIPNFTValuation<T = unknown>(id: string) {
-  return useApiQuery<T>(['ipnft', id, 'valuation'], () => api.ipnft.getValuation(id), {
-    enabled: !!id,
-  });
-}
-
-// Define types for API requests
-export interface MintIPNFTRequest {
-  name: string;
-  description: string;
-  ipType: string;
-  files: File[];
-  metadata: Record<string, any>;
-}
-
-export function useMintIPNFT<T = unknown>() {
-  return useApiMutation<T, MintIPNFTRequest>((data) => {
-    return api.ipnft.mint(data);
-  });
-}
-
-// Market hooks
-export function useMarketListings<T = unknown>() {
-  return useApiQuery<T>(['market', 'listings'], api.market.getListings);
-}
-
-export function useMarketOffers<T = unknown>() {
-  return useApiQuery<T>(['market', 'offers'], api.market.getOffers);
-}
-
-export function useAcceptOffer<T = unknown>() {
-  return useApiMutation<T, string>((offerId: string) => api.market.acceptOffer(offerId));
-}
-
-// Analytics hooks
-export function useMarketAnalytics<T = unknown>() {
-  return useApiQuery<T>(['analytics', 'market'], api.analytics.getMarketData);
-}
-
-export function usePortfolioAnalytics<T = unknown>() {
-  return useApiQuery<T>(['analytics', 'portfolio'], api.analytics.getPortfolioData);
-}
-
-// Consulting hooks
-export function useConsultingServices<T = unknown>() {
-  return useApiQuery<T>(['consulting', 'services'], api.consulting.getServices);
-}
-
-export function useConsultingBookings<T = unknown>() {
-  return useApiQuery<T>(['consulting', 'bookings'], api.consulting.getBookings);
-}
-
-export interface BookingRequest {
-  serviceId: string;
-  date: string;
-  time: string;
-  notes?: string;
-}
-
-export function useCreateBooking<T = unknown>() {
-  return useApiMutation<T, BookingRequest>(api.consulting.createBooking);
-}
-
-// KYC hooks
-export function useKYCStatus<T = unknown>() {
-  return useApiQuery<T>(['kyc', 'status'], api.kyc.getStatus);
-}
-
-export interface KYCSubmitRequest {
-  fullName: string;
-  email: string;
-  country: string;
-  idType: string;
-  idNumber: string;
-  idDocument: File;
-}
-
-export function useSubmitKYC<T = unknown>() {
-  return useApiMutation<T, KYCSubmitRequest>(api.kyc.submit);
-}
-
-// Legal hooks
-export function useTerms<T = unknown>() {
-  return useApiQuery<T>(['legal', 'terms'], api.legal.getTerms);
-}
-
-export function usePrivacyPolicy<T = unknown>() {
-  return useApiQuery<T>(['legal', 'privacy'], api.legal.getPrivacyPolicy);
+  return { data, isLoading, error };
 }
