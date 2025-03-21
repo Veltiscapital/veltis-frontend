@@ -1,25 +1,33 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
+import { BrowserRouter } from 'react-router-dom';
+import { AuthProvider } from './contexts/AuthContext';
 import App from './App';
+import Web3Provider from './components/Web3Provider';
+import { Toaster } from 'sonner';
 import './index.css';
 
-// Initialize environment variables from public/env-config.js
-declare global {
-  interface Window {
-    _env_: Record<string, string>;
-  }
-}
+// Log environment information for debugging
+console.log('Environment:', import.meta.env.MODE);
+console.log('Blockchain Network:', import.meta.env.VITE_BLOCKCHAIN_NETWORK);
+console.log('Chain ID:', import.meta.env.VITE_CHAIN_ID);
+console.log('Network Name:', import.meta.env.VITE_NETWORK_NAME);
+console.log('IPNFT Registry Address:', import.meta.env.VITE_IP_NFT_REGISTRY_CONTRACT);
+console.log('Rule Engine Address:', import.meta.env.VITE_VELTIS_RULE_ENGINE);
 
-// Make environment variables available to Vite's import.meta.env
-if (typeof window !== 'undefined' && window._env_) {
-  Object.keys(window._env_).forEach(key => {
-    // @ts-ignore - Dynamically adding to import.meta.env
-    import.meta.env[key] = window._env_[key];
-  });
-}
+// Debug logging
+console.log('React initializing at', new Date().toISOString());
+console.log('Render application with Web3Provider');
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    <App />
+    <BrowserRouter>
+      <Web3Provider>
+        <AuthProvider>
+          <App />
+          <Toaster position="top-right" />
+        </AuthProvider>
+      </Web3Provider>
+    </BrowserRouter>
   </React.StrictMode>
 );
