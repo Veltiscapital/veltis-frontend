@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Veltis - Loading Error</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+      background-color: #f9fafb;
+      color: #111827;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      margin: 0;
+      padding: 20px;
+      text-align: center;
+    }
+    .container {
+      max-width: 600px;
+      background-color: white;
+      border-radius: 8px;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+      padding: 32px;
+    }
+    h1 {
+      color: #4f46e5;
+      margin-top: 0;
+    }
+    p {
+      margin-bottom: 24px;
+      line-height: 1.6;
+    }
+    .error-details {
+      background-color: #f3f4f6;
+      border-radius: 6px;
+      padding: 16px;
+      margin: 24px 0;
+      text-align: left;
+      overflow-x: auto;
+    }
+    .error-message {
+      font-family: monospace;
+      color: #ef4444;
+      margin: 0;
+    }
+    .button {
+      background-color: #4f46e5;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      padding: 12px 24px;
+      font-size: 16px;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-block;
+      font-weight: 500;
+      transition: background-color 0.2s;
+    }
+    .button:hover {
+      background-color: #4338ca;
+    }
+    .steps {
+      text-align: left;
+      margin: 24px 0;
+    }
+    .steps li {
+      margin-bottom: 8px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Veltis Platform</h1>
+    <p>We're experiencing some technical difficulties. Our team has been notified and is working to resolve the issue.</p>
+    
+    <div class="error-details">
+      <p class="error-message" id="error-message">Loading error detected</p>
+    </div>
+    
+    <div class="steps">
+      <h3>Troubleshooting Steps:</h3>
+      <ol>
+        <li>Check your internet connection</li>
+        <li>Clear your browser cache and cookies</li>
+        <li>Try using a different browser</li>
+        <li>Disable any browser extensions that might be interfering</li>
+        <li>If you're using a VPN, try disabling it temporarily</li>
+      </ol>
+    </div>
+    
+    <a href="/" class="button" id="refresh-button">Reload Application</a>
+  </div>
+
+  <script>
+    // Add event listener to the refresh button
+    document.getElementById('refresh-button').addEventListener('click', function(e) {
+      e.preventDefault();
+      window.location.reload(true); // Force reload from server
+    });
+
+    // Extract error from URL if present
+    const urlParams = new URLSearchParams(window.location.search);
+    const errorParam = urlParams.get('error');
+    
+    if (errorParam) {
+      document.getElementById('error-message').textContent = decodeURIComponent(errorParam);
+    }
+    
+    // Check if we can redirect to the main app
+    function checkMainApp() {
+      fetch('/')
+        .then(response => {
+          if (response.ok) {
+            window.location.href = '/';
+          }
+        })
+        .catch(err => {
+          console.error('Error checking main app:', err);
+        });
+    }
+    
+    // Try to redirect after 10 seconds
+    setTimeout(checkMainApp, 10000);
+    
+    // Log to console that fallback page was loaded
+    console.log('Fallback page loaded due to application error');
+  </script>
+</body>
+</html> 
